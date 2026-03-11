@@ -57,7 +57,7 @@ Agent 收到的 CLI 标准输出：
 markdown 已展示：30天销量、好评率、复购率、铺货数、累计销量、揽收率、评价数、类目。
 **仅存在于 stats** 的字段：`earliestListingTime`（上架时间）、`last30DaysDropShippingSales`（代发下单量）— Agent 做选品分析时需主动读取。
 
-## stats 字段与选品阈值
+## stats 字段与选品阈值参考
 
 ### 核心决策字段
 
