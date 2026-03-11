@@ -72,7 +72,7 @@ def format_product_list(products: List[Product], max_show: int = 20) -> str:
 
     for i, p in enumerate(products[:max_show], 1):
         lines.append(f"---")
-        lines.append(f"**{i}. {p.title}**")
+        lines.append(f"**{i}. [{p.title}]({p.url})**")
         if p.image:
             lines.append(f"![商品图]({p.image})")
         lines.append(f"💰 **¥{p.price}**")
