@@ -7,8 +7,6 @@ __pycache__/
 *$py.class
 *.so
 
-# 数据目录（用户本地生成）
-data/products/*.json
 
 # 环境变量配置（可能包含敏感信息）
 .env
@@ -25,5 +23,3 @@ data/products/*.json
 .DS_Store
 Thumbs.db
 
-# 数据文件已迁移到 workspace/1688-skill-data/，忽略 skill 目录内的旧数据
-data/
