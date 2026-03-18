@@ -285,6 +285,158 @@ def _stringify(value: Any, fallback: str = "暂无") -> str:
     return fallback
 
 
+def _clean_markdown_text(text: str) -> str:
+    cleaned = text.replace("**", "").replace("### ", "").replace("#### ", "")
+    cleaned = cleaned.replace("→", "").replace("📊", "").replace("🔺", "").replace("🔻", "")
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    return cleaned.strip()
+
+
+def _dedupe_preserve_order(items: List[str]) -> List[str]:
+    deduped: List[str] = []
+    for item in items:
+        value = item.strip()
+        if value and value not in deduped:
+            deduped.append(value)
+    return deduped
+
+
+def _extract_text_sections(text: str) -> List[str]:
+    section_pattern = re.compile(
+        r"####\s*([^\n]+?)\s*\n((?:(?!\n####|\n###|\Z).|\n)*)",
+        re.MULTILINE,
+    )
+    return [match.group(0).strip() for match in section_pattern.finditer(text)]
+
+
+def _extract_query_candidates_from_text(text: str) -> List[str]:
+    numbered = re.findall(r"\d+\.\s+\*\*([^*]+)\*\*", text)
+    if numbered:
+        return _dedupe_preserve_order(numbered)
+
+    plain = re.findall(r"\d+\.\s+([^\n]+)", text)
+    return _dedupe_preserve_order(plain)
+
+
+def _extract_price_band_from_text(text: str) -> str:
+    table_rows = re.findall(r"\|\s*¥?([^|]+?)\s*\|\s*(\d+)\s*\|\s*([\d.]+%)\s*\|", text)
+    parsed_rows = []
+    for price_range, count, _share in table_rows:
+        price_range = price_range.strip()
+        if not re.search(r"\d", price_range):
+            continue
+        parsed_rows.append((price_range, int(count)))
+
+    if parsed_rows:
+        dominant_range = max(parsed_rows, key=lambda item: item[1])[0]
+        normalized_range = dominant_range.replace("¥", "").strip()
+        match = re.search(r"(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)", normalized_range)
+        if match:
+            return f"¥{match.group(1)}-¥{match.group(2)}"
+        return dominant_range.replace(" ¥", "¥").replace(" - ", "-")
+
+    return "待确认"
+
+
+def _extract_trend_from_text(text: str) -> str:
+    parts: List[str] = []
+
+    yoy_match = re.search(r"\*\*年同比增长\*\*：([^\n]+)", text)
+    if yoy_match:
+        parts.append(_clean_markdown_text(f"年同比增长：{yoy_match.group(1)}"))
+
+    recent_section = re.search(r"####\s*6\.\s*近期动向（最近3个月）\s*\n((?:(?!\n###|\Z).|\n)*)", text)
+    if recent_section:
+        recent_lines = [line.strip("- ").strip() for line in recent_section.group(1).splitlines() if line.strip()]
+        cleaned_lines = [_clean_markdown_text(line) for line in recent_lines[:2]]
+        parts.extend(line for line in cleaned_lines if line)
+
+    peak_match = re.search(r"-\s*(\d{6}):\s*[\d,.]+\s*←.*?峰值", text)
+    trough_match = re.search(r"-\s*(\d{6}):\s*[\d,.]+\s*←.*?谷底", text)
+    if peak_match and trough_match:
+        parts.append(f"峰值在 {peak_match.group(1)}，谷底在 {trough_match.group(1)}")
+
+    if not parts:
+        return "暂无趋势数据"
+
+    return "；".join(_dedupe_preserve_order(parts))[:200]
+
+
+def _extract_competition_from_text(text: str) -> str:
+    hints: List[str] = []
+
+    supply_match = re.search(r"\*\*供需关系\*\*：([^\n]+)", text)
+    if supply_match:
+        supply_text = _clean_markdown_text(supply_match.group(1))
+        if supply_text:
+            hints.append(supply_text)
+
+    if "竞争格局开放" in text:
+        hints.append("竞争格局开放")
+
+    if "流量分布相对分散" in text:
+        hints.append("流量分布相对分散")
+
+    if not hints:
+        return "待确认"
+
+    return "；".join(_dedupe_preserve_order(hints))[:160]
+
+
+def _extract_category_from_text(text: str) -> str:
+    for pattern in [r"\*\*原始查询\*\*：([^\n]+)", r"\*\*查询关键词\*\*：([^\n]+)"]:
+        match = re.search(pattern, text)
+        if match:
+            value = _clean_markdown_text(match.group(1))
+            if value:
+                return value
+    return "待确认"
+
+
+def _extract_opportunity_from_text_block(text: str) -> Dict[str, Any]:
+    if not isinstance(text, str) or not text.strip():
+        return {}
+
+    queries = _extract_query_candidates_from_text(text)
+    category = _extract_category_from_text(text)
+    trend = _extract_trend_from_text(text)
+    competition = _extract_competition_from_text(text)
+    price_band = _extract_price_band_from_text(text)
+
+    if not queries and category == "待确认" and trend == "暂无趋势数据" and competition == "待确认":
+        return {}
+
+    return {
+        "category": category,
+        "queries": queries,
+        "trend": trend,
+        "competition": competition,
+        "price_band": price_band,
+        "raw": {
+            "source": "text_output",
+            "output": text,
+            "sections": _extract_text_sections(text),
+        },
+    }
+
+
+def _extract_opportunity_from_text_outputs(biz_data: Dict[str, Any]) -> Dict[str, Any]:
+    candidate_texts: List[str] = []
+    low_sales_data = biz_data.get("低销量类目商机数据")
+
+    if isinstance(low_sales_data, list):
+        for item in low_sales_data:
+            if isinstance(item, dict) and isinstance(item.get("output"), str):
+                candidate_texts.append(item["output"])
+
+    for text in candidate_texts:
+        extracted = _extract_opportunity_from_text_block(text)
+        if extracted:
+            return extracted
+
+    return {}
+
+
 def _candidate_score(data: Dict[str, Any]) -> int:
     score = 0
     if _pick(data, CATEGORY_KEYS):
@@ -327,6 +479,9 @@ def _extract_opportunity(biz_data: Dict[str, Any]) -> Dict[str, Any]:
     price_band = _stringify(_pick(selected, PRICE_KEYS), "待确认")
 
     if not selected:
+        text_output_extracted = _extract_opportunity_from_text_outputs(biz_data)
+        if text_output_extracted:
+            return text_output_extracted
         return {
             "category": "待确认",
             "queries": [],
