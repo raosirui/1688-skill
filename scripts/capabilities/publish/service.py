@@ -30,17 +30,19 @@ _ERROR_MESSAGES = {
 
 
 def _parse_error_code(mcd: dict) -> str:
-    """从 mcd.data（JSON 字符串）中提取 outShops[0].errorCode"""
+    """优先从 mcd.data.outShops[0].errorCode 取，没有则降级到 mcd.errorCode"""
     mcd_data_str = mcd.get("data", "")
     try:
         mcd_data = json.loads(mcd_data_str) if mcd_data_str else {}
     except Exception:
         mcd_data = {}
     out_shops = mcd_data.get("outShops", [])
-    if not out_shops:
-        return ""
-    code = out_shops[0].get("errorCode", "") or ""
-    return str(code)
+    if out_shops:
+        code = out_shops[0].get("errorCode", "") or ""
+        if code:
+            return str(code)
+    fallback = mcd.get("errorCode", "") or ""
+    return str(fallback)
 
 
 def load_products_by_data_id(data_id: str) -> Optional[List[str]]:
