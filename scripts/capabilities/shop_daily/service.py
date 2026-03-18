@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from _const import DATA_DIR
+from _const import SEARCH_DATA_DIR
 from _errors import ServiceError
 from _http import api_post
 from capabilities.opportunities.service import fetch_opportunities
@@ -885,7 +885,7 @@ def _fmt_price_value(value: float) -> str:
 
 
 def _load_latest_search_snapshot() -> Dict[str, Any]:
-    data_dir = Path(DATA_DIR)
+    data_dir = Path(SEARCH_DATA_DIR)
     if not data_dir.is_dir():
         return {}
 

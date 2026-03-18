@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 
 from _http import api_post
-from _const import CHANNEL_MAP, SEARCH_LIMIT, DATA_DIR
+from _const import CHANNEL_MAP, SEARCH_LIMIT, SEARCH_DATA_DIR
 from _errors import ServiceError
 from _output import fmt_rate
 
@@ -70,11 +70,11 @@ def search_products(query: str, channel: str = "") -> List[Product]:
 
 def save_search_result(products: List[Product], query: str, channel: str) -> str:
     """保存搜索结果到文件，返回 data_id"""
-    Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
+    Path(SEARCH_DATA_DIR).mkdir(parents=True, exist_ok=True)
 
     now = datetime.now()
     data_id = now.strftime("%Y%m%d_%H%M%S") + f"_{now.microsecond // 1000:03d}"
-    filepath = os.path.join(DATA_DIR, f"1688_{data_id}.json")
+    filepath = os.path.join(SEARCH_DATA_DIR, f"1688_{data_id}.json")
 
     products_map = {}
     for p in products:

@@ -10,10 +10,15 @@ import sys
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 import argparse
+from datetime import datetime
+
 from _output import print_output, print_error
 from _const import PUBLISH_LIMIT
 from capabilities.publish.service import (
-    load_products_by_data_id, normalize_item_ids, publish_with_check,
+    load_products_by_data_id,
+    normalize_item_ids,
+    publish_with_check,
+    save_publish_snapshot,
 )
 
 
@@ -60,6 +65,25 @@ def main():
                 f"确认铺货 {submitted_count} 个商品到目标店铺？"
                 "去掉 --dry-run 执行正式铺货。"
             )
+        try:
+            time = datetime.now().strftime("%Y%m%d_%H%M%S") + f"_{datetime.now().microsecond // 1000:03d}"
+            save_publish_snapshot({
+                "time": time,
+                "api_request": result.get("_api_request"),
+                "api_response": result.get("_api_response"),
+                "meta": {
+                    "shop_code": args.shop_code,
+                    "dry_run": args.dry_run,
+                    "search_data_id": args.data_id or "",
+                },
+                "cli_output": {
+                    "success": result["success"],
+                    "markdown": result["markdown"],
+                    "data": data,
+                },
+            })
+        except Exception:
+            data.pop("time", None)
         print_output(result["success"], result["markdown"], data)
     except Exception as e:
         print_error(e, {"success": False})

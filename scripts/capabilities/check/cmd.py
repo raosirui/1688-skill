@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), '..'
 from pathlib import Path
 from _auth import get_ak_from_env
 from _output import print_output
-from _const import DATA_DIR
+from _const import SEARCH_DATA_DIR
 
 
 def check_status() -> dict:
@@ -50,8 +50,8 @@ def check_status() -> dict:
 
     # 3. 数据目录
     try:
-        Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
-        lines.append(f"✅ 数据目录: {DATA_DIR}")
+        Path(SEARCH_DATA_DIR).mkdir(parents=True, exist_ok=True)
+        lines.append(f"✅ 数据目录: {SEARCH_DATA_DIR}")
     except Exception as e:
         lines.append(f"❌ 数据目录不可写: {e}")
         ok = False
