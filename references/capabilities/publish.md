@@ -30,8 +30,8 @@ python3 {baseDir}/cli.py publish --shop-code "260391138" --data-id "20260305_143
 
 | 用户意图 | Agent 操作 |
 |---------|-----------|
-| "全部铺货" / "铺这批" | 用 `--data-id`（铺整批） |
-| "铺第 1、3 个" / "铺 xxx 这个" / "铺你推荐的" | 从 search 输出的 `data.products[]` 中按序号或 ID 提取或按 agent 推荐的商品提取，用 `--item-ids` |
+| "全部铺货" / "铺这批" | 用 `--data-id`（明确意图，铺整批20个商品） |
+| "铺第 1、3 个" / "铺 xxx 这个" / "铺你推荐的几个"  | 从 search 输出的 `data.products[]` 中按序号或ID提取或按agent推荐的提取部分商品ID，用 `--item-ids` |
 | 直接给了商品 ID | 用 `--item-ids` |
 | 没有商品来源 | 先执行 `search` |
 | 两者都传 | CLI 拒绝执行（参数互斥） |
