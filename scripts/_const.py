@@ -26,7 +26,7 @@ CHANNEL_MAP: dict[str, str] = {
 }
 
 # Skill 版本
-SKILL_VERSION = "1.0.0"
+SKILL_VERSION = "1.0.1"
 
 # 接口返回/提交数量限制（按最新接口文档）
 SEARCH_LIMIT = 20
